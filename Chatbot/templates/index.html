@@ -1,0 +1,942 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10131b">
+    <title>NOVA AI | Asistente Inteligente</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)'], ['$','$']],
+                displayMath: [['\\[', '\\]'], ['$$', '$$']]
+            },
+            options: {
+                skipHtmlTags: [
+                    'script', 'style', 'textarea',
+                    'pre', 'code', 'noscript'
+                ]
+            },
+            startup: { typeset: false }
+        };
+    </script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+    <style>
+        :root {
+            --bg: #10131b;
+            --sidebar: #141823;
+            --panel: #1a1f2d;
+            --panel-hover: #222839;
+            --border: #2c3244;
+            --text: #f3f5fc;
+            --muted: #969fb5;
+            --purple: #8978ff;
+            --purple-light: #b1a5ff;
+            --blue: #7dd3fc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            height: 100dvh;
+            overflow: hidden;
+            font-family: Inter, "Segoe UI", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        button, textarea {
+            font: inherit;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        button:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid var(--purple);
+            outline-offset: 3px;
+        }
+
+        .app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* BARRA LATERAL */
+
+        .sidebar {
+            width: 260px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 22px 15px;
+            background: var(--sidebar);
+            border-right: 1px solid var(--border);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 3px 7px 26px;
+        }
+
+        .brand-icon {
+            width: 43px;
+            height: 43px;
+            display: grid;
+            place-items: center;
+            border-radius: 15px;
+            color: white;
+            font-size: 23px;
+            background: linear-gradient(135deg, #9a83ff, #6551df);
+            box-shadow: 0 5px 22px #7867f533;
+        }
+
+        .brand-name {
+            font-size: 19px;
+            font-weight: 750;
+            letter-spacing: 1px;
+        }
+
+        .brand-subtitle {
+            margin-top: 3px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        .new-chat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 13px 14px;
+            color: white;
+            background: linear-gradient(120deg, #7e6bf0, #6755d9);
+            border: 0;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: .2s;
+        }
+
+        .new-chat:hover {
+            filter: brightness(1.12);
+            transform: translateY(-1px);
+        }
+
+        .sidebar-label {
+            margin: 30px 9px 12px;
+            color: #747e96;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+        }
+
+        .side-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 12px 10px;
+            margin-bottom: 4px;
+            border-radius: 10px;
+            color: #b6bfd2;
+            font-size: 13px;
+            background: transparent;
+            border: 0;
+            text-align: left;
+        }
+
+        .side-item:hover,
+        .side-item.active {
+            background: var(--panel-hover);
+            color: white;
+        }
+
+        .side-item .side-icon {
+            width: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .sidebar-bottom {
+            margin-top: auto;
+        }
+
+        .account-card {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 13px 9px;
+            border-top: 1px solid var(--border);
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            background: #2b3150;
+            color: #c6bcff;
+            border-radius: 50%;
+            font-weight: bold;
+        }
+
+        .account-name {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .account-caption {
+            margin-top: 4px;
+            color: var(--muted);
+            font-size: 11px;
+        }
+
+        /* PANEL PRINCIPAL */
+
+        .main {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-width: 0;
+            position: relative;
+            background:
+                radial-gradient(ellipse at 52% 0%, #6d5bd20c, transparent 48%),
+                var(--bg);
+        }
+
+        .topbar {
+            height: 68px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 28px;
+            border-bottom: 1px solid #ffffff0b;
+            background: #10131bcc;
+            backdrop-filter: blur(14px);
+        }
+
+        .topbar-title {
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        .topbar-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .status-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #5ed6a0;
+            box-shadow: 0 0 10px #5ed6a055;
+        }
+
+        .chat {
+            flex: 1;
+            min-height: 0;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            padding: 28px 22px 35px;
+        }
+
+        .chat::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat::-webkit-scrollbar-thumb {
+            background: #353b4e;
+            border-radius: 10px;
+        }
+
+        /* BIENVENIDA */
+
+        .welcome {
+            width: 100%;
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 25px 0 40px;
+            animation: appear .45s ease;
+        }
+
+        .welcome-icon {
+            width: 76px;
+            height: 76px;
+            display: grid;
+            place-items: center;
+            margin-bottom: 25px;
+            border: 1px solid #8c7bff44;
+            border-radius: 25px;
+            background: linear-gradient(145deg, #2b2850, #1b2033);
+            box-shadow: 0 10px 50px #7460ff12;
+            font-size: 34px;
+        }
+
+        .welcome h1 {
+            margin: 0;
+            font-size: clamp(26px, 4vw, 36px);
+            font-weight: 750;
+            letter-spacing: -1.1px;
+            text-align: center;
+        }
+
+        .gradient-text {
+            color: var(--purple-light);
+        }
+
+        .welcome-description {
+            max-width: 450px;
+            margin: 14px 0 32px;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.8;
+            text-align: center;
+        }
+
+        .suggestions {
+            width: 100%;
+            max-width: 600px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .suggestion {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            min-height: 90px;
+            padding: 17px;
+            text-align: left;
+            color: var(--text);
+            background: linear-gradient(145deg, #1a1f2d, #171b27);
+            border: 1px solid var(--border);
+            border-radius: 15px;
+            transition: border-color .2s, background .2s, transform .2s;
+        }
+
+        .suggestion:hover {
+            border-color: #8878ed88;
+            background: #22273a;
+            transform: translateY(-2px);
+        }
+
+        .suggestion-icon {
+            display: grid;
+            place-items: center;
+            width: 35px;
+            height: 35px;
+            flex-shrink: 0;
+            border-radius: 11px;
+            background: #8878ed1a;
+            font-size: 18px;
+        }
+
+        .suggestion-title {
+            display: block;
+            margin: 1px 0 6px;
+            font-size: 13px;
+            font-weight: 650;
+        }
+
+        .suggestion-description {
+            display: block;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.5;
+        }
+
+        /* MENSAJES */
+
+        .message {
+            width: 100%;
+            max-width: 790px;
+            margin: 0 auto 25px;
+            font-size: 14px;
+            line-height: 1.85;
+            overflow-wrap: anywhere;
+            animation: appear .25s ease;
+        }
+
+        .user-message {
+            width: fit-content;
+            max-width: 82%;
+            margin-left: auto;
+            padding: 12px 17px;
+            white-space: pre-wrap;
+            background: linear-gradient(135deg, #554b91, #403d70);
+            border: 1px solid #a397ff24;
+            border-radius: 19px 19px 5px 19px;
+            color: #fff;
+        }
+
+        .bot-message {
+            padding: 2px 2px 8px;
+            color: #e2e6f1;
+        }
+
+        .bot-message p {
+            margin: 10px 0 15px;
+        }
+
+        .bot-message h1,
+        .bot-message h2,
+        .bot-message h3 {
+            margin: 25px 0 12px;
+            color: #fff;
+            line-height: 1.4;
+        }
+
+        .bot-message h1 { font-size: 24px; }
+        .bot-message h2 { font-size: 20px; }
+        .bot-message h3 { font-size: 16px; }
+
+        .bot-message ul,
+        .bot-message ol {
+            padding-left: 25px;
+        }
+
+        .bot-message li {
+            margin: 7px 0;
+            padding-left: 3px;
+        }
+
+        .bot-message strong {
+            color: #c9c0ff;
+        }
+
+        .bot-message blockquote {
+            margin: 18px 0;
+            padding: 10px 16px;
+            border-left: 3px solid var(--purple);
+            background: #1a1f2d;
+            color: #bac2d5;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .bot-message pre {
+            padding: 16px;
+            overflow-x: auto;
+            background: #0c0f16;
+            border: 1px solid var(--border);
+            border-radius: 13px;
+        }
+
+        .bot-message code {
+            padding: 2px 5px;
+            background: #282d40;
+            border-radius: 5px;
+            font-family: Consolas, monospace;
+            font-size: .9em;
+        }
+
+        .bot-message pre code {
+            padding: 0;
+            background: transparent;
+        }
+
+        .bot-message a {
+            color: var(--blue);
+        }
+
+        .bot-message mjx-container {
+            max-width: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+
+        .bot-message mjx-container[display="true"] {
+            margin: 18px 0 !important;
+            padding: 12px 4px;
+        }
+
+        .typing {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            width: fit-content;
+            padding: 15px 17px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
+
+        .typing span {
+            width: 6px;
+            height: 6px;
+            background: var(--purple-light);
+            border-radius: 50%;
+            animation: bounce 1s infinite ease-in-out;
+        }
+
+        .typing span:nth-child(2) { animation-delay: .15s; }
+        .typing span:nth-child(3) { animation-delay: .3s; }
+
+        /* CAJA DE TEXTO */
+
+        .composer-area {
+            width: 100%;
+            max-width: 850px;
+            flex-shrink: 0;
+            align-self: center;
+            padding: 12px 24px 10px;
+        }
+
+        .composer {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            padding: 10px 11px 10px 19px;
+            border: 1px solid #353b50;
+            border-radius: 23px;
+            background: #1b2030;
+            box-shadow: 0 8px 35px #00000020;
+            transition: border-color .2s, box-shadow .2s;
+        }
+
+        .composer:focus-within {
+            border-color: #8978ff99;
+            box-shadow: 0 0 0 3px #8978ff0d;
+        }
+
+        #mensaje {
+            flex: 1;
+            min-width: 0;
+            max-height: 180px;
+            resize: none;
+            border: none;
+            outline: none;
+            padding: 9px 0;
+            background: transparent;
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        #mensaje::placeholder {
+            color: #828ca3;
+        }
+
+        #enviar {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            display: grid;
+            place-items: center;
+            border: 0;
+            border-radius: 15px;
+            color: white;
+            font-size: 22px;
+            background: linear-gradient(140deg, #9b87ff, #6e5be5);
+            box-shadow: 0 4px 15px #7968ee33;
+            transition: .2s;
+        }
+
+        #enviar:hover:not(:disabled) {
+            filter: brightness(1.15);
+            transform: translateY(-1px);
+        }
+
+        #enviar:disabled {
+            opacity: .55;
+            cursor: not-allowed;
+        }
+
+        .hint {
+            margin-top: 12px;
+            color: #727d95;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @keyframes appear {
+            from { opacity: 0; transform: translateY(7px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes bounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: .55; }
+            30% { transform: translateY(-5px); opacity: 1; }
+        }
+
+        @media (max-width: 760px) {
+            .sidebar { width: 215px; }
+            .topbar { padding: 0 18px; }
+            .chat { padding: 22px 17px; }
+            .composer-area { padding: 10px 15px; }
+        }
+
+        @media (max-width: 570px) {
+            .sidebar { display: none; }
+            .topbar { height: 58px; padding: 0 16px; }
+            .chat { padding: 20px 15px; }
+            .welcome { justify-content: center; }
+            .welcome-icon { width: 65px; height: 65px; }
+            .welcome h1 { font-size: 27px; }
+            .welcome-description { font-size: 13px; margin-bottom: 25px; }
+            .suggestions { grid-template-columns: 1fr; gap: 9px; }
+            .suggestion { min-height: 72px; padding: 13px; }
+            .message { font-size: 14px; }
+            .user-message { max-width: 90%; }
+            .composer-area { padding: 9px 10px; }
+            .hint { font-size: 9px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: .01ms !important;
+                transition-duration: .01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<div class="app">
+
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">✦</div>
+            <div>
+                <div class="brand-name">NOVA AI</div>
+                <div class="brand-subtitle">Tu espacio inteligente</div>
+            </div>
+        </div>
+
+        <button class="new-chat" id="nuevoChat">
+            <span>＋</span> Crear nuevo chat
+        </button>
+
+        <div class="sidebar-label">HERRAMIENTAS</div>
+
+        <button class="side-item active" id="btnAprender">
+            <span class="side-icon">⌘</span> Asistente general
+        </button>
+
+        <button class="side-item" data-prompt="Explícame este tema de forma sencilla, con ejemplos.">
+            <span class="side-icon">▤</span> Aprender algo
+        </button>
+
+        <button class="side-item" data-prompt="Ayúdame a resolver este ejercicio paso a paso.">
+            <span class="side-icon">∑</span> Resolver ejercicios
+        </button>
+
+        <div class="sidebar-bottom">
+            <div class="account-card">
+                <div class="avatar">N</div>
+                <div>
+                    <div class="account-name">Mi asistente</div>
+                    <div class="account-caption">Impulsado por Gemini</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div class="topbar-title">Asistente inteligente</div>
+            <div class="topbar-status">
+                <span class="status-dot"></span>
+                <span>Chat disponible</span>
+            </div>
+        </header>
+
+        <section class="chat" id="chat">
+            <div class="welcome" id="bienvenida">
+                <div class="welcome-icon">✦</div>
+                <h1>Hola, ¿qué vamos a <span class="gradient-text">descubrir?</span></h1>
+                <p class="welcome-description">
+                    Estoy aquí para ayudarte a comprender ideas,
+                    resolver problemas y aprender algo nuevo.
+                </p>
+
+                <div class="suggestions">
+                    <button class="suggestion" data-pregunta="Explícame la fotosíntesis de forma sencilla.">
+                        <span class="suggestion-icon">🌱</span>
+                        <span>
+                            <span class="suggestion-title">Aprende un tema</span>
+                            <span class="suggestion-description">Conceptos explicados claramente</span>
+                        </span>
+                    </button>
+
+                    <button class="suggestion" data-pregunta="Resuelve una ecuación matemática y explícame cada paso.">
+                        <span class="suggestion-icon">∑</span>
+                        <span>
+                            <span class="suggestion-title">Resuelve ejercicios</span>
+                            <span class="suggestion-description">Matemáticas paso a paso</span>
+                        </span>
+                    </button>
+
+                    <button class="suggestion" data-pregunta="Explícame la fuerza magnética y escribe correctamente sus fórmulas.">
+                        <span class="suggestion-icon">⚡</span>
+                        <span>
+                            <span class="suggestion-title">Ciencia y fórmulas</span>
+                            <span class="suggestion-description">Física, química y más</span>
+                        </span>
+                    </button>
+
+                    <button class="suggestion" data-pregunta="Dame tres ideas creativas para un proyecto escolar y explícame cómo empezar.">
+                        <span class="suggestion-icon">✧</span>
+                        <span>
+                            <span class="suggestion-title">Explora ideas</span>
+                            <span class="suggestion-description">Inspírate y crea algo nuevo</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <div class="composer-area">
+            <form id="formulario">
+                <div class="composer">
+                    <textarea
+                        id="mensaje"
+                        rows="1"
+                        placeholder="Escribe tu pregunta..."
+                        aria-label="Escribe tu pregunta"
+                        required
+                    ></textarea>
+                    <button id="enviar" type="submit" aria-label="Enviar mensaje">↑</button>
+                </div>
+            </form>
+            <div class="hint">Enter para enviar · Shift + Enter para una nueva línea</div>
+        </div>
+    </main>
+</div>
+
+<script>
+    const chat = document.getElementById("chat");
+    const entrada = document.getElementById("mensaje");
+    const formulario = document.getElementById("formulario");
+    const botonEnviar = document.getElementById("enviar");
+    const botonNuevoChat = document.getElementById("nuevoChat");
+
+    // Corrige delimitadores de fórmulas antes de interpretar Markdown.
+    function corregirFormulas(texto) {
+        // Convierte delimitadores LaTeX que llegaron con barras duplicadas.
+        texto = texto.replace(/\\\\\[/g, "\\[").replace(/\\\\\]/g, "\\]");
+
+        // Quita barras invertidas sueltas en líneas independientes.
+        texto = texto.replace(/^[ \t]*\\{1,}[ \t]*$/gm, "");
+
+        // Corrige expresiones entre corchetes, por ejemplo:
+        // [ F = |q| \cdot v \cdot B \cdot \sin(\theta) \\]
+        texto = texto.replace(
+            /\[\s*([\s\S]*?)\s*(?:\\\\)?\s*\]/g,
+            function (original, contenido) {
+                const formula = contenido.trim();
+
+                const pareceFormula =
+                    /\\(?:frac|vec|cdot|times|sin|cos|tan|theta|mu|pi|text|mathrm|sqrt|sum|int|alpha|beta|mathbf|pm|approx|leq|geq)\b/.test(formula)
+                    || /(?:=|\^|_|\|)/.test(formula);
+
+                if (!pareceFormula) return original;
+
+                return "\n\n\\[" + formula + "\\]\n\n";
+            }
+        );
+
+        return texto;
+    }
+
+    function agregarMensaje(texto, esUsuario = false) {
+        const elemento = document.createElement("div");
+
+        elemento.className = esUsuario
+            ? "message user-message"
+            : "message bot-message";
+
+        if (esUsuario) {
+            elemento.textContent = texto;
+        } else {
+            const limpio = corregirFormulas(texto);
+            const html = marked.parse(limpio);
+            elemento.innerHTML = DOMPurify.sanitize(html);
+        }
+
+        chat.appendChild(elemento);
+        chat.scrollTop = chat.scrollHeight;
+
+        return elemento;
+    }
+
+    function mostrarCarga() {
+        const elemento = document.createElement("div");
+        elemento.className = "message";
+        elemento.innerHTML = `
+            <div class="typing" role="status" aria-label="Generando respuesta">
+                <span></span><span></span><span></span>
+            </div>`;
+        chat.appendChild(elemento);
+        chat.scrollTop = chat.scrollHeight;
+        return elemento;
+    }
+
+    async function renderizarMatematicas(elemento) {
+        try {
+            await MathJax.startup.promise;
+            await MathJax.typesetPromise([elemento]);
+        } catch (error) {
+            console.error("Error al mostrar las fórmulas:", error);
+        }
+    }
+
+    async function enviarMensaje(texto) {
+        texto = texto.trim();
+
+        if (!texto || botonEnviar.disabled) return;
+
+        const bienvenida = document.getElementById("bienvenida");
+        if (bienvenida) bienvenida.remove();
+
+        agregarMensaje(texto, true);
+
+        entrada.value = "";
+        entrada.style.height = "auto";
+        botonEnviar.disabled = true;
+        botonEnviar.textContent = "…";
+
+        const carga = mostrarCarga();
+
+        try {
+            const respuestaHTTP = await fetch("/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ mensaje: texto })
+            });
+
+            const datos = await respuestaHTTP.json();
+
+            if (!respuestaHTTP.ok) {
+                throw new Error(
+                    datos.respuesta || "No se pudo obtener una respuesta."
+                );
+            }
+
+            carga.remove();
+
+            const respuesta = datos.respuesta ||
+                "No recibí una respuesta. Inténtalo otra vez.";
+
+            const mensajeBot = agregarMensaje(respuesta);
+
+            await renderizarMatematicas(mensajeBot);
+
+        } catch (error) {
+            console.error("Error del chat:", error);
+            carga.remove();
+
+            agregarMensaje(
+                "No pude obtener una respuesta. Comprueba que el servidor esté funcionando e inténtalo de nuevo."
+            );
+        } finally {
+            botonEnviar.disabled = false;
+            botonEnviar.textContent = "↑";
+            entrada.focus();
+            chat.scrollTop = chat.scrollHeight;
+        }
+    }
+
+    formulario.addEventListener("submit", function (evento) {
+        evento.preventDefault();
+        enviarMensaje(entrada.value);
+    });
+
+    entrada.addEventListener("keydown", function (evento) {
+        if (evento.key === "Enter" && !evento.shiftKey) {
+            evento.preventDefault();
+            formulario.requestSubmit();
+        }
+    });
+
+    entrada.addEventListener("input", function () {
+        entrada.style.height = "auto";
+        entrada.style.height =
+            Math.min(entrada.scrollHeight, 180) + "px";
+    });
+
+    function activarBotonesDePregunta() {
+        document.querySelectorAll(".suggestion").forEach(function (boton) {
+            boton.onclick = function () {
+                enviarMensaje(boton.dataset.pregunta);
+            };
+        });
+
+        document.querySelectorAll(".side-item[data-prompt]").forEach(function (boton) {
+            boton.onclick = function () {
+                enviarMensaje(boton.dataset.prompt);
+            };
+        });
+    }
+
+    activarBotonesDePregunta();
+
+    botonNuevoChat.addEventListener("click", function () {
+        chat.innerHTML = `
+            <div class="welcome" id="bienvenida">
+                <div class="welcome-icon">✦</div>
+                <h1>Hola, ¿qué vamos a <span class="gradient-text">descubrir?</span></h1>
+                <p class="welcome-description">
+                    Estoy aquí para ayudarte a comprender ideas,
+                    resolver problemas y aprender algo nuevo.
+                </p>
+                <div class="suggestions">
+                    <button class="suggestion" data-pregunta="Explícame la fotosíntesis de forma sencilla.">
+                        <span class="suggestion-icon">🌱</span>
+                        <span><span class="suggestion-title">Aprende un tema</span>
+                        <span class="suggestion-description">Conceptos explicados claramente</span></span>
+                    </button>
+                    <button class="suggestion" data-pregunta="Resuelve una ecuación matemática y explícame cada paso.">
+                        <span class="suggestion-icon">∑</span>
+                        <span><span class="suggestion-title">Resuelve ejercicios</span>
+                        <span class="suggestion-description">Matemáticas paso a paso</span></span>
+                    </button>
+                    <button class="suggestion" data-pregunta="Explícame la fuerza magnética y escribe correctamente sus fórmulas.">
+                        <span class="suggestion-icon">⚡</span>
+                        <span><span class="suggestion-title">Ciencia y fórmulas</span>
+                        <span class="suggestion-description">Física, química y más</span></span>
+                    </button>
+                    <button class="suggestion" data-pregunta="Dame tres ideas creativas para un proyecto escolar.">
+                        <span class="suggestion-icon">✧</span>
+                        <span><span class="suggestion-title">Explora ideas</span>
+                        <span class="suggestion-description">Inspírate y crea algo nuevo</span></span>
+                    </button>
+                </div>
+            </div>`;
+
+        activarBotonesDePregunta();
+        entrada.value = "";
+        entrada.style.height = "auto";
+        entrada.focus();
+    });
+</script>
+</body>
+</html>
